@@ -3,7 +3,7 @@ module Galaxy.SyntaxTree where
 data File = File Path [TopDeclaration]
             deriving Show
 
-data TopDeclaration = VarDeclaration Type Identifier Value
+data TopDeclaration = VarDeclaration Type Identifier Statement
                     | NativeDeclaration Prototype
                     | FuncDeclaration IsStatic Prototype [Local] [TopStatement]
                     | Include Path

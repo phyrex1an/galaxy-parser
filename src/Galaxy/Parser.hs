@@ -81,9 +81,9 @@ topDeclaration = varDeclaration
         t <- identifier
         i <- identifier
         symbol "="
-        v <- value
+        s <- statement
         semi
-        return $ VarDeclaration t i v
+        return $ VarDeclaration t i s
       nativeDeclaration = do
         reserved "native"
         p <- prototype
