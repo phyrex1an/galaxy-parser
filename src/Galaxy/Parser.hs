@@ -64,7 +64,10 @@ naturalOrFloat= P.naturalOrFloat lexer
 
 
 program :: String -> GenParser Char st File
-program file = lexeme . fmap (File file) $ many topDeclaration
+program file = do
+  ts <- many topDeclaration
+  eof
+  return $ File file ts
 
 topDeclaration :: GenParser Char st TopDeclaration
 topDeclaration = varDeclaration
