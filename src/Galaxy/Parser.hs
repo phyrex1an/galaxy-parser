@@ -80,6 +80,7 @@ topDeclaration = varDeclaration
         reserved "const"
         t <- identifier
         i <- identifier
+        symbol "="
         v <- value
         semi
         return $ VarDeclaration t i v
