@@ -111,7 +111,12 @@ prototype = do
               return $ (t, i)
 
 local :: GenParser Char st Local
-local = undefined
+local = do
+  t <- identifier
+  i <- identifier
+  v <- (fmap Just value) <|> return Nothing
+  semi
+  return $ Local t i v
 
 topStatement :: GenParser Char st TopStatement
 topStatement = undefined
