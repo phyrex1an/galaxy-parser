@@ -5,7 +5,7 @@ data File = File Path [TopDeclaration]
 
 data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
                     | NativeDeclaration Prototype
-                    | FuncDeclaration IsStatic Prototype [Local] [TopStatement]
+                    | FuncDeclaration IsStatic Prototype (Maybe FunctionBody)
                     | Include Path
                       deriving Show
                       
@@ -53,3 +53,4 @@ type Type = String
 type Path = String
 type Argument = (Type, Identifier)
 type If = (Statement, [TopStatement])
+type FunctionBody = ([Local], [TopStatement])

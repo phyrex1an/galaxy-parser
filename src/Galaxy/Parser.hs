@@ -94,17 +94,18 @@ topDeclaration =  nativeDeclaration
       funcDeclaration = (do
         isStatic <- (reserved "static" >> return True) <|> return False
         p <- try prototype
-        symbol "{"
-        ls <-  many (try local)
-        ts <- many topStatement
-        symbol "}"
-        return $ FuncDeclaration isStatic p ls ts
+        b <- fmap Just functionBody <|> (semi >> return Nothing)
+        return $ FuncDeclaration isStatic p b
                         ) <?> "Function"
       include = (do
         reserved "include"
         p <- stringLiteral
         return $ Include p
                ) <?> "Include"
+      functionBody = braces $ do
+        ls <- many (try local)
+        ts <- many topStatement  
+        return (ls, ts)
 
 prototype :: GenParser Char st Prototype
 prototype = (do 
