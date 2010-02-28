@@ -76,7 +76,7 @@ topDeclaration = varDeclaration
                  <|> include
                  <|> funcDeclaration
     where
-      varDeclaration = do
+      varDeclaration = (do
         reserved "const"
         t <- identifier
         i <- identifier
@@ -84,30 +84,35 @@ topDeclaration = varDeclaration
         s <- statement
         semi
         return $ VarDeclaration t i s
-      nativeDeclaration = do
+                       ) <?> "Variable declaration"
+      nativeDeclaration = (do
         reserved "native"
         p <- prototype
         semi
         return $ NativeDeclaration p
-      funcDeclaration = do
+                          ) <?> "Native"
+      funcDeclaration = (do
         isStatic <- (reserved "static" >> return True) <|> return False
-        p <- prototype
+        p <- try prototype
         symbol "{"
         ls <- many local
         ts <- many topStatement
         symbol "}"
         return $ FuncDeclaration isStatic p ls ts
-      include = do
+                        ) <?> "Function"
+      include = (do
         reserved "include"
         p <- stringLiteral
         return $ Include p
+               ) <?> "Include"
 
 prototype :: GenParser Char st Prototype
-prototype = do 
+prototype = (do 
   t <- identifier
   i <- identifier
   as <- parens (sepBy argument comma)
   return $ Prototype t i as
+            ) <?> "Prototype"
     where
       argument = do
               t <- identifier
@@ -115,52 +120,59 @@ prototype = do
               return $ (t, i)
 
 local :: GenParser Char st Local
-local = do
+local = (do
   t <- identifier
   i <- identifier
   v <- (fmap Just value) <|> return Nothing
   semi
   return $ Local t i v
+        ) <?> "Local"
 
 topStatement :: GenParser Char st TopStatement
 topStatement = returnStatement
-               <|> setStatement
-               <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
                <|> ifStatement
                <|> while
                <|> break
                <|> continue
+               <|> try setStatement
+               <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
     where
-      returnStatement = do
+      returnStatement = (do
         reserved "return"
         s <- statement
         semi
         return $ ReturnStatement s
-      setStatement = do
+                        ) <?> "Return"
+      setStatement = (do
         i <- identifier
         symbol "="
         s <- statement
         semi
         return $ SetStatement i s
-      ifStatement = do 
+                     ) <?> "Variable set"
+      ifStatement = (do 
         reserved "if"
         (ts:elifs) <- sepBy1 ifExpr (reserved "else if")
         els <- (reserved "else" >> 
                          (fmap Just . braces $ many topStatement)) 
                <|> return Nothing
         return $ IfStatement ts elifs els
-      while = do
+               ) <?> "If"
+      while = (do
         reserved "while"
         b <- ifExpr
         return $ While b
-      break = do
+               ) <?> "While"
+      break = (do
         reserved "break"
         semi
         return Break
-      continue = do
+              ) <?> "Break"
+      continue = (do
         reserved "continue"
         semi
         return Continue      
+               ) <?> "Continue"
       ifExpr = do
         e <- parens statement
         b <- braces $ many topStatement
@@ -169,10 +181,11 @@ topStatement = returnStatement
 
 statement :: GenParser Char st Statement
 statement = buildExpressionParser expressionTable terms
-    where terms = callStatement CallStatement
-		  <|> variableStatement
-		  <|> valueStatement
+            <?> "Statement"
+    where terms = valueStatement
 		  <|> parens statement
+                  <|> variableStatement
+                  <|> callStatement CallStatement
           variableStatement = do
             v <- identifier
             return $ VariableStatement v
@@ -190,13 +203,15 @@ expressionTable :: OperatorTable Char st Statement
 expressionTable = [ [prefix "-" NegatedStatement]
 		  , [binary "*" Mul, binary "/" Div]
 		  , [binary "+" Add, binary "-" Sub]
-		  , 	[ binary ">" Gt
-			, binary ">=" Gte
-			, binary "==" Eq
-			, binary "!=" Nq
-			, binary "<=" Lte
-			, binary "<" Lt
-			]
+		  , [ binary ">" Gt
+		    , binary ">=" Gte
+		    , binary "==" Eq
+		    , binary "!=" Nq
+		    , binary "<=" Lte
+		    , binary "<" Lt
+                    , binary "|" BinOr
+                    , binary "&" BinAnd
+		    ]
 		  , [prefix "!" NotStatement]
 		  , [binary "&&" And, binary "||" Or]
                   ]
