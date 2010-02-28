@@ -123,7 +123,7 @@ local :: GenParser Char st Local
 local = (do
   t <- identifier
   i <- identifier
-  v <- (fmap Just value) <|> return Nothing
+  v <- (symbol "=" >> fmap Just statement) <|> return Nothing
   semi
   return $ Local t i v
         ) <?> "Local"

@@ -12,7 +12,7 @@ data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
 data Prototype = Prototype Type Identifier [Argument]
                deriving Show
 
-data Local = Local Type Identifier (Maybe Value)
+data Local = Local Type Identifier (Maybe Statement)
              deriving Show
 
 data TopStatement = ReturnStatement Statement
