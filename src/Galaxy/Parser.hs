@@ -66,8 +66,46 @@ program :: String -> GenParser Char st File
 program file = lexeme . fmap (File file) $ many topDeclaration
 
 topDeclaration :: GenParser Char st TopDeclaration
-topDeclaration = undefined
+topDeclaration = varDeclaration
+                 <|> nativeDeclaration
+                 <|> funcDeclaration
+                 <|> include
+    where
+      varDeclaration = do
+        symbol "const"
+        t <- identifier
+        i <- identifier
+        v <- value
+        semi
+        return $ VarDeclaration t i v
+      nativeDeclaration = do
+        symbol "native"
+        p <- prototype
+        semi
+        return $ NativeDeclaration p
+      funcDeclaration = do
+        isStatic <- (symbol "static" >> return True) <|> return False
+        p <- prototype
+        ls <- many local
+        ts <- many topStatement
+        return $ FuncDeclaration isStatic p ls ts
+      include = do
+        symbol "include"
+        p <- stringLiteral
+        semi
+        return $ Include p
 
+prototype :: GenParser Char st Prototype
+prototype = undefined        
+
+local :: GenParser Char st Local
+local = undefined
+
+topStatement :: GenParser Char st TopStatement
+topStatement = undefined
+
+value :: GenParser Char st Value
+value = undefined
 
 doParse :: FilePath -> String -> Either ParseError File
 doParse file input = runParser (program file) () file input
