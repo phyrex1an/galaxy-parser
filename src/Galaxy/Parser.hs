@@ -139,7 +139,7 @@ topStatement = returnStatement
     where
       returnStatement = (do
         reserved "return"
-        s <- statement
+        s <- fmap Just statement <|> return Nothing
         semi
         return $ ReturnStatement s
                         ) <?> "Return"

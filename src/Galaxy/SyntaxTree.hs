@@ -15,7 +15,7 @@ data Prototype = Prototype Type Identifier [Argument]
 data Local = Local Type Identifier (Maybe Statement)
              deriving Show
 
-data TopStatement = ReturnStatement Statement
+data TopStatement = ReturnStatement (Maybe Statement)
                   | SetStatement Identifier Statement
                   | CallTopStatement Identifier [Statement]
                   | IfStatement If [If] (Maybe [TopStatement])
