@@ -38,5 +38,5 @@ type IsStatic = Bool
 type Identifier = String
 type Type = String
 type Path = String
-type Argument = (Type,Identifier)
+type Argument = (Type, Identifier)
 type If = (Statement, [TopStatement])
