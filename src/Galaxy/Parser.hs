@@ -65,6 +65,7 @@ naturalOrFloat= P.naturalOrFloat lexer
 
 program :: String -> GenParser Char st File
 program file = do
+  whiteSpace
   ts <- many topDeclaration
   eof
   return $ File file ts
