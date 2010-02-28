@@ -1,15 +1,19 @@
 module Galaxy.SyntaxTree where
 
 data File = File Path [TopDeclaration]
+            deriving Show
 
 data TopDeclaration = VarDeclaration Type Identifier Value
                     | NativeDeclaration Prototype
                     | FuncDeclaration IsStatic Prototype [Local] [TopStatement]
                     | Include Path
+                      deriving Show
                       
 data Prototype = Prototype Type Identifier [Argument]
+               deriving Show
 
 data Local = Local Type Identifier (Maybe Value)
+             deriving Show
 
 data TopStatement = ReturnStatement Statement
                   | SetStatement Identifier Statement
@@ -18,6 +22,7 @@ data TopStatement = ReturnStatement Statement
                   | While If
                   | Break
                   | Continue
+                    deriving Show
 
 data Statement = CallStatement Identifier [Statement]
                | VariableStatement Identifier
@@ -25,16 +30,19 @@ data Statement = CallStatement Identifier [Statement]
                | NegatedStatement Statement
                | NotStatement Statement
                | ValueStatement Value
+                 deriving Show
 
 data Value = StringValue String
            | FixedValue Rational
            | IntValue Integer
            | BoolValue Bool
            | NullValue
+             deriving Show
 
 data Op = Add | Sub | Mul | Div 
         | Lt | Lte | Eq | Nq | Gte | Gt
         | And | Or
+          deriving Show
 
 type IsStatic = Bool
 type Identifier = String
