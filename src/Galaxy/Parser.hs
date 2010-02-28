@@ -73,19 +73,19 @@ topDeclaration = varDeclaration
                  <|> include
     where
       varDeclaration = do
-        symbol "const"
+        reserved "const"
         t <- identifier
         i <- identifier
         v <- value
         semi
         return $ VarDeclaration t i v
       nativeDeclaration = do
-        symbol "native"
+        reserved "native"
         p <- prototype
         semi
         return $ NativeDeclaration p
       funcDeclaration = do
-        isStatic <- (symbol "static" >> return True) <|> return False
+        isStatic <- (reserved "static" >> return True) <|> return False
         p <- prototype
         symbol "{"
         ls <- many local
@@ -93,7 +93,7 @@ topDeclaration = varDeclaration
         symbol "}"
         return $ FuncDeclaration isStatic p ls ts
       include = do
-        symbol "include"
+        reserved "include"
         p <- stringLiteral
         semi
         return $ Include p
