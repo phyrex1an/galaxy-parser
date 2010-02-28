@@ -201,7 +201,21 @@ expressionTable = [ [prefix "-" NegatedStatement]
       prefix  name fun = Prefix  (do{ reservedOp name; return fun })
 
 value :: GenParser Char st Value
-value = undefined
+value = stringValue 
+        <|> number
+        <|> boolValue
+        <|> nullValue
+    where
+      stringValue = fmap StringValue stringLiteral
+      number = do
+        r <- naturalOrFloat
+        case r of
+          Left i -> return $ IntValue i
+          Right d -> return . FixedValue $ toRational d
+      boolValue = fmap BoolValue $ (reserved "true" >> return True)
+                  <|> (reserved "false" >> return False)
+      nullValue = reserved "null" >> return NullValue
+           
 
 doParse :: FilePath -> String -> Either ParseError File
 doParse file input = runParser (program file) () file input
