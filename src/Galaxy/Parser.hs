@@ -69,8 +69,8 @@ program file = lexeme . fmap (File file) $ many topDeclaration
 topDeclaration :: GenParser Char st TopDeclaration
 topDeclaration = varDeclaration
                  <|> nativeDeclaration
-                 <|> funcDeclaration
                  <|> include
+                 <|> funcDeclaration
     where
       varDeclaration = do
         reserved "const"
@@ -95,7 +95,6 @@ topDeclaration = varDeclaration
       include = do
         reserved "include"
         p <- stringLiteral
-        semi
         return $ Include p
 
 prototype :: GenParser Char st Prototype
