@@ -203,6 +203,7 @@ expressionTable :: OperatorTable Char st Statement
 expressionTable = [ [prefix "-" NegatedStatement]
 		  , [binary "*" Mul, binary "/" Div]
 		  , [binary "+" Add, binary "-" Sub]
+                  , [binary "%" Mod]
 		  , [ binary ">" Gt
 		    , binary ">=" Gte
 		    , binary "==" Eq

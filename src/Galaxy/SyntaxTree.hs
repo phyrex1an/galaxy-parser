@@ -43,6 +43,7 @@ data Op = Add | Sub | Mul | Div
         | Lt | Lte | Eq | Nq | Gte | Gt
         | And | Or
         | BinAnd | BinOr
+        | Mod
           deriving Show
 
 type IsConst = Bool
