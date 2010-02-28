@@ -119,7 +119,56 @@ local = do
   return $ Local t i v
 
 topStatement :: GenParser Char st TopStatement
-topStatement = undefined
+topStatement = returnStatement
+               <|> setStatement
+               <|> callTopStatement
+               <|> ifStatement
+               <|> while
+               <|> break
+               <|> continue
+    where
+      returnStatement = do
+        reserved "return"
+        s <- statement
+        semi
+        return $ ReturnStatement s
+      setStatement = do
+        i <- identifier
+        symbol "="
+        s <- statement
+        semi
+        return $ SetStatement i s
+      callTopStatement = do
+        i <- identifier
+        s <- parens (sepBy statement comma)
+        return $ CallTopStatement i s
+      ifStatement = do 
+        reserved "if"
+        (ts:elifs) <- sepBy1 ifExpr (reserved "else if")
+        els <- (reserved "else" >> 
+                         (fmap Just . braces $ many topStatement)) 
+               <|> return Nothing
+        return $ IfStatement ts elifs els
+      while = do
+        reserved "while"
+        b <- ifExpr
+        return $ While b
+      break = do
+        reserved "break"
+        semi
+        return Break
+      continue = do
+        reserved "continue"
+        semi
+        return Continue      
+      ifExpr = do
+        e <- parens statement
+        b <- braces $ many topStatement
+        return $ (e, b)
+        
+
+statement :: GenParser Char st Statement
+statement = undefined
 
 value :: GenParser Char st Value
 value = undefined
