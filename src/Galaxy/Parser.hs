@@ -184,8 +184,8 @@ statement = buildExpressionParser expressionTable terms
             <?> "Statement"
     where terms = valueStatement
 		  <|> parens statement
+                  <|> try (callStatement CallStatement)
                   <|> variableStatement
-                  <|> callStatement CallStatement
           variableStatement = do
             v <- identifier
             return $ VariableStatement v
