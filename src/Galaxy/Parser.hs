@@ -121,7 +121,7 @@ local = do
 topStatement :: GenParser Char st TopStatement
 topStatement = returnStatement
                <|> setStatement
-               <|> callTopStatement
+               <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
                <|> ifStatement
                <|> while
                <|> break
@@ -138,10 +138,6 @@ topStatement = returnStatement
         s <- statement
         semi
         return $ SetStatement i s
-      callTopStatement = do
-        i <- identifier
-        s <- parens (sepBy statement comma)
-        return $ CallTopStatement i s
       ifStatement = do 
         reserved "if"
         (ts:elifs) <- sepBy1 ifExpr (reserved "else if")
@@ -168,7 +164,41 @@ topStatement = returnStatement
         
 
 statement :: GenParser Char st Statement
-statement = undefined
+statement = buildExpressionParser expressionTable terms
+    where terms = callStatement CallStatement
+		  <|> variableStatement
+		  <|> valueStatement
+		  <|> parens statement
+          variableStatement = do
+            v <- identifier
+            return $ VariableStatement v
+          valueStatement = do
+            v <- value
+            return $ ValueStatement v
+
+callStatement :: (Identifier -> [Statement] -> t) -> GenParser Char st t
+callStatement f = do
+        i <- identifier
+        s <- parens (sepBy statement comma)
+        return $ f i s
+	
+expressionTable :: OperatorTable Char st Statement
+expressionTable = [ [prefix "-" NegatedStatement]
+		  , [binary "*" Mul, binary "/" Div]
+		  , [binary "+" Add, binary "-" Sub]
+		  , 	[ binary ">" Gt
+			, binary ">=" Gte
+			, binary "==" Eq
+			, binary "!=" Nq
+			, binary "<=" Lte
+			, binary "<" Lt
+			]
+		  , [prefix "!" NotStatement]
+		  , [binary "&&" And, binary "||" Or]
+                  ]
+    where
+      binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
+      prefix  name fun = Prefix  (do{ reservedOp name; return fun })
 
 value :: GenParser Char st Value
 value = undefined

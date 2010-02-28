@@ -14,24 +14,26 @@ data Local = Local Type Identifier (Maybe Value)
 data TopStatement = ReturnStatement Statement
                   | SetStatement Identifier Statement
                   | CallTopStatement Identifier [Statement]
-                  | IfStatement If [If] (Maybe Statement)
-                  | While Statement [TopStatement]
+                  | IfStatement If [If] (Maybe [TopStatement])
+                  | While If
                   | Break
                   | Continue
 
 data Statement = CallStatement Identifier [Statement]
                | VariableStatement Identifier
                | BinaryStatement Statement Op Statement
+               | NegatedStatement Statement
+               | NotStatement Statement
+               | ValueStatement Value
 
 data Value = StringValue String
            | FixedValue Rational
            | IntValue Integer
            | BoolValue Bool
            | NullValue
-           | Not Statement
 
 data Op = Add | Sub | Mul | Div 
-        | Lt | Lte | Eq | Gte | Gt
+        | Lt | Lte | Eq | Nq | Gte | Gt
         | And | Or
 
 type IsStatic = Bool
