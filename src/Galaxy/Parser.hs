@@ -52,6 +52,7 @@ natural   = P.natural lexer
 parens    = P.parens lexer
 braces    = P.braces lexer
 semi      = P.semi lexer
+comma     = P.comma lexer
 identifier= P.identifier lexer
 reserved  = P.reserved lexer
 reservedOp= P.reservedOp lexer
@@ -86,8 +87,10 @@ topDeclaration = varDeclaration
       funcDeclaration = do
         isStatic <- (symbol "static" >> return True) <|> return False
         p <- prototype
+        symbol "{"
         ls <- many local
         ts <- many topStatement
+        symbol "}"
         return $ FuncDeclaration isStatic p ls ts
       include = do
         symbol "include"
@@ -96,7 +99,16 @@ topDeclaration = varDeclaration
         return $ Include p
 
 prototype :: GenParser Char st Prototype
-prototype = undefined        
+prototype = do 
+  t <- identifier
+  i <- identifier
+  as <- parens (sepBy argument comma)
+  return $ Prototype t i as
+    where
+      argument = do
+              t <- identifier
+              i <- identifier
+              return $ (t, i)
 
 local :: GenParser Char st Local
 local = undefined
