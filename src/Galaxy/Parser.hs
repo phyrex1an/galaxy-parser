@@ -95,7 +95,7 @@ topDeclaration = varDeclaration
         isStatic <- (reserved "static" >> return True) <|> return False
         p <- try prototype
         symbol "{"
-        ls <- many local
+        ls <-  many (try local)
         ts <- many topStatement
         symbol "}"
         return $ FuncDeclaration isStatic p ls ts
