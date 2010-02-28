@@ -3,7 +3,7 @@ module Galaxy.SyntaxTree where
 data File = File Path [TopDeclaration]
             deriving Show
 
-data TopDeclaration = VarDeclaration Type Identifier Statement
+data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
                     | NativeDeclaration Prototype
                     | FuncDeclaration IsStatic Prototype [Local] [TopStatement]
                     | Include Path
@@ -42,8 +42,10 @@ data Value = StringValue String
 data Op = Add | Sub | Mul | Div 
         | Lt | Lte | Eq | Nq | Gte | Gt
         | And | Or
+        | BinAnd | BinOr
           deriving Show
 
+type IsConst = Bool
 type IsStatic = Bool
 type Identifier = String
 type Type = String

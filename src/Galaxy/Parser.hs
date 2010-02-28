@@ -71,19 +71,19 @@ program file = do
   return $ File file ts
 
 topDeclaration :: GenParser Char st TopDeclaration
-topDeclaration = varDeclaration
-                 <|> nativeDeclaration
+topDeclaration =  nativeDeclaration
                  <|> include
                  <|> funcDeclaration
+                 <|> varDeclaration
     where
       varDeclaration = (do
-        reserved "const"
+        isConst <- (reserved "const" >> return True) <|> return False
         t <- identifier
         i <- identifier
         symbol "="
         s <- statement
         semi
-        return $ VarDeclaration t i s
+        return $ VarDeclaration isConst t i s
                        ) <?> "Variable declaration"
       nativeDeclaration = (do
         reserved "native"
