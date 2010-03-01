@@ -228,15 +228,19 @@ value = stringValue
         <|> nullValue
     where
       stringValue = fmap StringValue stringLiteral
-      number = do
+      number = (do
         r <- naturalOrFloat
         case r of
           Left i -> return $ IntValue i
           Right d -> return . FixedValue $ toRational d
+               ) <|> dotFloat     
       boolValue = fmap BoolValue $ (reserved "true" >> return True)
                   <|> (reserved "false" >> return False)
       nullValue = reserved "null" >> return NullValue
-           
+      dotFloat = do -- Not the prettiest code in town...
+        char '.'
+        d <- many1 digit
+        return . FixedValue . toRational $ (read ('0':'.':d) :: Float)
 
 doParse :: FilePath -> String -> Either ParseError File
 doParse file input = runParser (program file) () file input
