@@ -6,7 +6,7 @@ parses their content and output the haskell datastructures
 or a list of parse errors.
 
 To build the program just do
-    ghc --make
+    ghc --make main.hs
 in the src/ directory.
 
 Dependencies
