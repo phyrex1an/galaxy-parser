@@ -67,6 +67,7 @@ symbol    = P.symbol lexer
 natural   = P.natural lexer
 parens    = P.parens lexer
 braces    = P.braces lexer
+squares   = P.squares lexer
 semi      = P.semi lexer
 comma     = P.comma lexer
 identifier= P.identifier lexer
@@ -90,7 +91,8 @@ topDeclaration :: GenParser Char st TopDeclaration
 topDeclaration =  nativeDeclaration
                  <|> include
                  <|> funcDeclaration
-                 <|> varDeclaration
+                 <|> try varDeclaration
+                 <|> arrayDeclaration
     where
       varDeclaration = (do
         isConst <- (reserved "const" >> return True) <|> return False
@@ -101,6 +103,13 @@ topDeclaration =  nativeDeclaration
         semi
         return $ VarDeclaration isConst t i s
                        ) <?> "Variable declaration"
+      arrayDeclaration = (do
+                           t <- identifier
+                           s <- squares natural
+                           i <- identifier;
+                           semi
+                           return $ ArrDeclaration t s i
+                           ) <?> "Array declaration"
       nativeDeclaration = (do
         reserved "native"
         p <- prototype
@@ -137,13 +146,24 @@ prototype = (do
               return $ (t, i)
 
 local :: GenParser Char st Local
-local = (do
-  t <- identifier
-  i <- identifier
-  v <- (symbol "=" >> fmap Just statement) <|> return Nothing
-  semi
-  return $ Local t i v
-        ) <?> "Local"
+local = try localVar 
+        <|> localArr
+    where
+      localVar = (do
+                   t <- identifier
+                   i <- identifier
+                   v <- (symbol "=" >> fmap Just statement) <|> return Nothing
+                   semi
+                   return $ LocalVar t i v
+                 ) <?> "Local variable"
+      localArr = (do
+                   t <- identifier
+                   s <- squares natural
+                   i <- identifier
+                   semi
+                   return $ LocalArr t s i
+                 ) <?> "Local array variable"
+
 
 topStatement :: GenParser Char st TopStatement
 topStatement = returnStatement
@@ -151,7 +171,8 @@ topStatement = returnStatement
                <|> while
                <|> break
                <|> continue
-               <|> try setStatement
+               <|> try setArrStatement
+               <|> try setVarStatement
                <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
     where
       returnStatement = (do
@@ -160,7 +181,15 @@ topStatement = returnStatement
         semi
         return $ ReturnStatement s
                         ) <?> "Return"
-      setStatement = (do
+      setArrStatement = (do
+                          n <- identifier 
+                          i <- squares statement
+                          symbol "="
+                          s <- statement
+                          semi
+                          return $ SetArrayStatement n i s
+                          ) <?> "Array set"
+      setVarStatement = (do
         i <- identifier
         symbol "="
         s <- statement
@@ -202,10 +231,15 @@ statement = buildExpressionParser expressionTable terms
     where terms = valueStatement
 		  <|> parens statement
                   <|> try (callStatement CallStatement)
+                  <|> try arrayStatement
                   <|> variableStatement
           variableStatement = do
             v <- identifier
             return $ VariableStatement v
+          arrayStatement = do 
+            v <- identifier
+            i <- squares statement
+            return $ ArrayStatement v i
           valueStatement = do
             v <- value
             return $ ValueStatement v

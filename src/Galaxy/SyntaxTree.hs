@@ -20,6 +20,7 @@ data File = File Path [TopDeclaration]
             deriving Show
 
 data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
+                    | ArrDeclaration Type Size Identifier
                     | NativeDeclaration Prototype
                     | FuncDeclaration IsStatic Prototype (Maybe FunctionBody)
                     | Include Path
@@ -28,11 +29,13 @@ data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
 data Prototype = Prototype Type Identifier [Argument]
                deriving Show
 
-data Local = Local Type Identifier (Maybe Statement)
+data Local = LocalVar Type Identifier (Maybe Statement)
+           | LocalArr Type Size Identifier
              deriving Show
 
 data TopStatement = ReturnStatement (Maybe Statement)
                   | SetStatement Identifier Statement
+                  | SetArrayStatement Identifier Statement Statement
                   | CallTopStatement Identifier [Statement]
                   | IfStatement If [If] (Maybe [TopStatement])
                   | While If
@@ -42,6 +45,7 @@ data TopStatement = ReturnStatement (Maybe Statement)
 
 data Statement = CallStatement Identifier [Statement]
                | VariableStatement Identifier
+               | ArrayStatement Identifier Statement
                | BinaryStatement Statement Op Statement
                | NegatedStatement Statement
                | NotStatement Statement
@@ -62,6 +66,7 @@ data Op = Add | Sub | Mul | Div
         | Mod
           deriving Show
 
+type Size = Integer
 type IsConst = Bool
 type IsStatic = Bool
 type Identifier = String
