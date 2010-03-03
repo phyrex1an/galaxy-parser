@@ -19,19 +19,25 @@ module Galaxy.SyntaxTree where
 data File = File Path [TopDeclaration]
             deriving Show
 
-data TopDeclaration = VarDeclaration IsConst Type Identifier Statement
-                    | ArrDeclaration Type Size Identifier
+data TopDeclaration = ConstDeclaration IsStatic VarDef Statement
+                    | VariableDeclaration IsStatic VarDef (Maybe Statement)
+                    | TypeDef Type Identifier
                     | NativeDeclaration Prototype
                     | FuncDeclaration IsStatic Prototype (Maybe FunctionBody)
+                    | Struct IsStatic Identifier [VarDef]
                     | Include Path
                       deriving Show
                       
-data Prototype = Prototype Type Identifier [Argument]
+data Prototype = Prototype Type Identifier [VarDef]
                deriving Show
 
-data Local = LocalVar Type Identifier (Maybe Statement)
-           | LocalArr Type Size Identifier
+data Local = LocalVar VarDef (Maybe Statement)
              deriving Show
+
+data Type = ArrType Type Statement
+          | PointerType Type
+          | PlainType Identifier
+            deriving Show
 
 data TopStatement = ReturnStatement (Maybe Statement)
                   | SetStatement Identifier Statement
@@ -45,10 +51,12 @@ data TopStatement = ReturnStatement (Maybe Statement)
 
 data Statement = CallStatement Identifier [Statement]
                | VariableStatement Identifier
-               | ArrayStatement Identifier Statement
+               | ArrayStatement Statement Statement
                | BinaryStatement Statement Op Statement
                | NegatedStatement Statement
                | NotStatement Statement
+               | PtrStatement Statement
+               | DrfPtrStatement Statement
                | ValueStatement Value
                  deriving Show
 
@@ -66,12 +74,10 @@ data Op = Add | Sub | Mul | Div
         | Mod
           deriving Show
 
-type Size = Integer
 type IsConst = Bool
 type IsStatic = Bool
 type Identifier = String
-type Type = String
 type Path = String
-type Argument = (Type, Identifier)
+type VarDef = (Type, Identifier)
 type If = (Statement, [TopStatement])
 type FunctionBody = ([Local], [TopStatement])

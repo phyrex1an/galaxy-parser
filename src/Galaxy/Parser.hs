@@ -23,6 +23,8 @@ import Galaxy.SyntaxTree
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language( emptyDef )
 
+import Control.Applicative ((<*>))
+
 lexer  = P.makeTokenParser 
          (emptyDef
          { 
@@ -90,43 +92,55 @@ program file = do
 topDeclaration :: GenParser Char st TopDeclaration
 topDeclaration =  nativeDeclaration
                  <|> include
-                 <|> funcDeclaration
-                 <|> try varDeclaration
-                 <|> arrayDeclaration
+                 <|> typedef
+                 <|> do
+                   isStatic <- (reserved "static" >> return True) <|> return False
+                   let funs = map (\f -> f isStatic) [struct, constDeclaration, funcDeclaration, varDeclaration]
+                   choice funs
+                   
     where
-      varDeclaration = (do
-        isConst <- (reserved "const" >> return True) <|> return False
-        t <- identifier
-        i <- identifier
-        symbol "="
-        s <- statement
-        semi
-        return $ VarDeclaration isConst t i s
-                       ) <?> "Variable declaration"
-      arrayDeclaration = (do
-                           t <- identifier
-                           s <- squares natural
-                           i <- identifier;
-                           semi
-                           return $ ArrDeclaration t s i
-                           ) <?> "Array declaration"
       nativeDeclaration = (do
         reserved "native"
         p <- prototype
         semi
         return $ NativeDeclaration p
                           ) <?> "Native"
-      funcDeclaration = (do
-        isStatic <- (reserved "static" >> return True) <|> return False
-        p <- try prototype
-        b <- fmap Just functionBody <|> (semi >> return Nothing)
-        return $ FuncDeclaration isStatic p b
-                        ) <?> "Function"
       include = (do
         reserved "include"
         p <- stringLiteral
         return $ Include p
                ) <?> "Include"
+      typedef = (do
+                  reserved "typedef"
+                  t <- valueType
+                  i <- identifier
+                  semi
+                  return $ TypeDef t i
+                ) <?> "Typedef"
+      struct isStatic = do
+        reserved "struct"
+        i <- identifier
+        t <- braces (sepBy varDef semi)
+        return $ Struct isStatic i t
+      constDeclaration isStatic = (do
+                           reserved "const"
+                           v <- varDef
+                           symbol "="
+                           s <- statement
+                           semi
+                           return $ ConstDeclaration isStatic v s
+                         ) <?> "Const"
+      varDeclaration isStatic = (do
+        v <- varDef
+        s <- maybeSet
+        semi
+        return $ VariableDeclaration isStatic v s
+                       ) <?> "Variable declaration"
+      funcDeclaration isStatic = (do
+        p <- try prototype
+        b <- fmap Just functionBody <|> (semi >> return Nothing)
+        return $ FuncDeclaration isStatic p b
+                        ) <?> "Function"
       functionBody = braces $ do
         ls <- many (try local)
         ts <- many topStatement  
@@ -134,36 +148,18 @@ topDeclaration =  nativeDeclaration
 
 prototype :: GenParser Char st Prototype
 prototype = (do 
-  t <- identifier
+  t <- valueType
   i <- identifier
-  as <- parens (sepBy argument comma)
+  as <- parens (sepBy varDef comma)
   return $ Prototype t i as
             ) <?> "Prototype"
-    where
-      argument = do
-              t <- identifier
-              i <- identifier
-              return $ (t, i)
 
 local :: GenParser Char st Local
-local = try localVar 
-        <|> localArr
-    where
-      localVar = (do
-                   t <- identifier
-                   i <- identifier
-                   v <- (symbol "=" >> fmap Just statement) <|> return Nothing
-                   semi
-                   return $ LocalVar t i v
-                 ) <?> "Local variable"
-      localArr = (do
-                   t <- identifier
-                   s <- squares natural
-                   i <- identifier
-                   semi
-                   return $ LocalArr t s i
-                 ) <?> "Local array variable"
-
+local = do
+  v <- varDef
+  s <- maybeSet
+  semi
+  return $ LocalVar v s
 
 topStatement :: GenParser Char st TopStatement
 topStatement = returnStatement
@@ -228,48 +224,50 @@ topStatement = returnStatement
 statement :: GenParser Char st Statement
 statement = buildExpressionParser expressionTable terms
             <?> "Statement"
-    where terms = valueStatement
-		  <|> parens statement
-                  <|> try (callStatement CallStatement)
-                  <|> try arrayStatement
-                  <|> variableStatement
-          variableStatement = do
-            v <- identifier
-            return $ VariableStatement v
-          arrayStatement = do 
-            v <- identifier
-            i <- squares statement
-            return $ ArrayStatement v i
-          valueStatement = do
-            v <- value
-            return $ ValueStatement v
+    where 
+      terms = valueStatement
+	      <|> parens statement
+              <|> try (callStatement CallStatement)
+              <|> variableStatement
+      variableStatement = do
+        v <- identifier
+        return $ VariableStatement v
+      valueStatement = do
+        v <- value
+        return $ ValueStatement v
+      expressionTable :: OperatorTable Char st Statement
+      expressionTable = [ [Postfix (do
+                                     i <- squares statement
+                                     return $ (\s -> ArrayStatement s i) 
+                                   )
+                          ]
+                        , [ prefix "-" NegatedStatement
+                          , prefix "&" PtrStatement
+                          , prefix "*" DrfPtrStatement
+                          ]
+		        , [binary "*" Mul, binary "/" Div]
+		        , [binary "+" Add, binary "-" Sub]
+                        , [binary "%" Mod]
+		        , [ binary ">" Gt
+		          , binary ">=" Gte
+		          , binary "==" Eq
+		          , binary "!=" Nq
+		          , binary "<=" Lte
+		          , binary "<" Lt
+                          , binary "|" BinOr
+                          , binary "&" BinAnd
+		          ]
+		        , [prefix "!" NotStatement]
+		        , [binary "&&" And, binary "||" Or]
+                        ]
+      binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
+      prefix  name fun = Prefix  (do{ reservedOp name; return fun })
 
 callStatement :: (Identifier -> [Statement] -> t) -> GenParser Char st t
 callStatement f = do
-        i <- identifier
-        s <- parens (sepBy statement comma)
-        return $ f i s
-	
-expressionTable :: OperatorTable Char st Statement
-expressionTable = [ [prefix "-" NegatedStatement]
-		  , [binary "*" Mul, binary "/" Div]
-		  , [binary "+" Add, binary "-" Sub]
-                  , [binary "%" Mod]
-		  , [ binary ">" Gt
-		    , binary ">=" Gte
-		    , binary "==" Eq
-		    , binary "!=" Nq
-		    , binary "<=" Lte
-		    , binary "<" Lt
-                    , binary "|" BinOr
-                    , binary "&" BinAnd
-		    ]
-		  , [prefix "!" NotStatement]
-		  , [binary "&&" And, binary "||" Or]
-                  ]
-    where
-      binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
-      prefix  name fun = Prefix  (do{ reservedOp name; return fun })
+  i <- identifier
+  s <- parens (sepBy statement comma)
+  return $ f i s
 
 value :: GenParser Char st Value
 value = stringValue 
@@ -291,6 +289,32 @@ value = stringValue
         char '.'
         d <- many1 digit
         return . FixedValue . toRational $ (read ('0':'.':d) :: Float)
+
+valueType :: GenParser Char st Type
+valueType = buildExpressionParser expressionTable terms
+    where
+      terms = plainType <|> parens valueType
+      plainType =do
+        i <- identifier
+        return $ PlainType i
+      expressionTable = [ [Postfix (do
+                                     reservedOp "*"
+                                     return PointerType
+                                     ),
+                           Postfix (do
+                                     s <- squares statement
+                                     return (\t -> ArrType t s)
+                                   )
+                          ] ]
+
+varDef :: GenParser Char st VarDef
+varDef = do
+  t <- valueType
+  i <- identifier
+  return (t, i)
+
+maybeSet :: GenParser Char st (Maybe Statement)
+maybeSet = (symbol "=" >> statement >>= return . Just) <|> return Nothing
 
 doParse :: FilePath -> String -> Either ParseError File
 doParse file input = runParser (program file) () file input
