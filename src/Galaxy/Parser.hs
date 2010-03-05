@@ -308,8 +308,9 @@ valueType = buildExpressionParser expressionTable terms
                                      return PointerType
                                      ),
                            Postfix (do
-                                     s <- squares statement
-                                     return (\t -> ArrType t s)
+                                     s <- many1 (squares statement)
+                                     return $ \t ->
+                                         foldl ArrType t s
                                    )
                           ] ]
 
