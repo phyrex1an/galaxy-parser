@@ -95,7 +95,7 @@ topDeclaration =  nativeDeclaration
                  <|> typedef
                  <|> do
                    isStatic <- (reserved "static" >> return True) <|> return False
-                   let funs = map (\f -> f isStatic) [struct, constDeclaration, funcDeclaration, varDeclaration]
+                   let funs = map ($ isStatic) [struct, constDeclaration, funcDeclaration, varDeclaration]
                    choice funs
                    
     where
@@ -120,7 +120,8 @@ topDeclaration =  nativeDeclaration
       struct isStatic = do
         reserved "struct"
         i <- identifier
-        t <- braces (sepBy varDef semi)
+        t <- braces (sepEndBy varDef semi)
+        semi
         return $ Struct isStatic i t
       constDeclaration isStatic = (do
                            reserved "const"
@@ -167,8 +168,7 @@ topStatement = returnStatement
                <|> while
                <|> break
                <|> continue
-               <|> try setArrStatement
-               <|> try setVarStatement
+               <|> try setStatement
                <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
     where
       returnStatement = (do
@@ -177,21 +177,13 @@ topStatement = returnStatement
         semi
         return $ ReturnStatement s
                         ) <?> "Return"
-      setArrStatement = (do
-                          n <- identifier 
-                          i <- squares statement
+      setStatement = (do
+                          v <- variable
                           symbol "="
                           s <- statement
                           semi
-                          return $ SetArrayStatement n i s
-                          ) <?> "Array set"
-      setVarStatement = (do
-        i <- identifier
-        symbol "="
-        s <- statement
-        semi
-        return $ SetStatement i s
-                     ) <?> "Variable set"
+                          return $ SetStatement v s
+                          ) <?> "set statement"
       ifStatement = (do 
         reserved "if"
         (ts:elifs) <- sepBy1 ifExpr (reserved "else if")
@@ -228,22 +220,29 @@ statement = buildExpressionParser expressionTable terms
       terms = valueStatement
 	      <|> parens statement
               <|> try (callStatement CallStatement)
-              <|> variableStatement
-      variableStatement = do
-        v <- identifier
-        return $ VariableStatement v
+              <|> literalVariable
+      literalVariable = do
+        i <- identifier
+        return $ VariableStatement (LiteralVariable i)
       valueStatement = do
         v <- value
         return $ ValueStatement v
       expressionTable :: OperatorTable Char st Statement
-      expressionTable = [ [Postfix (do
-                                     i <- squares statement
-                                     return $ (\s -> ArrayStatement s i) 
-                                   )
+      expressionTable = [ [ Postfix (do
+                                      i <- squares statement
+                                      return $ \s ->
+                                          VariableStatement (ArrayDereference s i)
+                                    )
+                          , Postfix (do
+                                      reservedOp "->"
+                                      i <- identifier
+                                      return $ \s ->
+                                          VariableStatement (FieldDereference s i)
+                                    )
+                          , prefix "*" (VariableStatement . PtrDereference)
                           ]
                         , [ prefix "-" NegatedStatement
                           , prefix "&" PtrStatement
-                          , prefix "*" DrfPtrStatement
                           ]
 		        , [binary "*" Mul, binary "/" Div]
 		        , [binary "+" Add, binary "-" Sub]
@@ -263,6 +262,13 @@ statement = buildExpressionParser expressionTable terms
       binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
       prefix  name fun = Prefix  (do{ reservedOp name; return fun })
 
+variable :: GenParser Char st Variable
+variable = try $ do
+  s <- statement
+  case s of
+    (VariableStatement v) -> return v
+    _                     -> pzero
+
 callStatement :: (Identifier -> [Statement] -> t) -> GenParser Char st t
 callStatement f = do
   i <- identifier
@@ -280,7 +286,7 @@ value = stringValue
         r <- naturalOrFloat
         case r of
           Left i -> return $ IntValue i
-          Right d -> return . FixedValue $ toRational d
+          Right d -> return $ FixedValue d
                ) <|> dotFloat     
       boolValue = fmap BoolValue $ (reserved "true" >> return True)
                   <|> (reserved "false" >> return False)
@@ -288,7 +294,7 @@ value = stringValue
       dotFloat = do -- Not the prettiest code in town...
         char '.'
         d <- many1 digit
-        return . FixedValue . toRational $ (read ('0':'.':d) :: Float)
+        return . FixedValue $ (read ('0':'.':d) :: Double)
 
 valueType :: GenParser Char st Type
 valueType = buildExpressionParser expressionTable terms

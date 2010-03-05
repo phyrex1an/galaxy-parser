@@ -40,8 +40,7 @@ data Type = ArrType Type Statement
             deriving Show
 
 data TopStatement = ReturnStatement (Maybe Statement)
-                  | SetStatement Identifier Statement
-                  | SetArrayStatement Identifier Statement Statement
+                  | SetStatement Variable Statement         
                   | CallTopStatement Identifier [Statement]
                   | IfStatement If [If] (Maybe [TopStatement])
                   | While If
@@ -50,18 +49,22 @@ data TopStatement = ReturnStatement (Maybe Statement)
                     deriving Show
 
 data Statement = CallStatement Identifier [Statement]
-               | VariableStatement Identifier
-               | ArrayStatement Statement Statement
+               | VariableStatement Variable
                | BinaryStatement Statement Op Statement
                | NegatedStatement Statement
                | NotStatement Statement
                | PtrStatement Statement
-               | DrfPtrStatement Statement
                | ValueStatement Value
                  deriving Show
 
+data Variable = LiteralVariable Identifier -- var
+              | ArrayDereference Statement Statement -- stmt()[stmt()]
+              | FieldDereference Statement Identifier -- stmt()->field
+              | PtrDereference Statement -- *stmt()
+                deriving Show
+
 data Value = StringValue String
-           | FixedValue Rational
+           | FixedValue Double
            | IntValue Integer
            | BoolValue Bool
            | NullValue
