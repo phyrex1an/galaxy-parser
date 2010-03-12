@@ -219,7 +219,6 @@ statement = buildExpressionParser expressionTable terms
     where 
       terms = valueStatement
 	      <|> parens statement
-              <|> try (callStatement CallStatement)
               <|> literalVariable
       literalVariable = do
         i <- identifier
@@ -237,10 +236,29 @@ statement = buildExpressionParser expressionTable terms
                                       reservedOp "->"
                                       i <- identifier
                                       return $ \s ->
+                                          VariableStatement (FieldPtrDereference s i)
+                                    )
+                          , Postfix (do
+                                      reservedOp "."
+                                      i <- identifier
+                                      return $ \s ->
                                           VariableStatement (FieldDereference s i)
                                     )
                           , prefix "*" (VariableStatement . PtrDereference)
+                          , Postfix (do
+                                      a <- parens (sepBy statement comma)
+                                      return $ \s ->
+                                          CallStatement s a
+                                    )
                           ]
+                        , map (uncurry setOp)
+                              [ ("=" , SetV)
+                              , ("+=", IncV)
+                              , ("-=", DecV)
+                              , ("*=", MulV)
+                              , ("/=", DivV)
+                              , ("%=", ModV)
+                              ]
                         , [ prefix "-" NegatedStatement
                           , prefix "&" PtrStatement
                           ]
@@ -261,19 +279,12 @@ statement = buildExpressionParser expressionTable terms
                         ]
       binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
       prefix  name fun = Prefix  (do{ reservedOp name; return fun })
+      setOp   name sym = Infix (do 
+                                 reservedOp name
+                                 return $ \a b -> 
+                                     AssignStatement a sym b
+                               ) AssocNone
 
-variable :: GenParser Char st Variable
-variable = try $ do
-  s <- statement
-  case s of
-    (VariableStatement v) -> return v
-    _                     -> pzero
-
-callStatement :: (Identifier -> [Statement] -> t) -> GenParser Char st t
-callStatement f = do
-  i <- identifier
-  s <- parens (sepBy statement comma)
-  return $ f i s
 
 value :: GenParser Char st Value
 value = stringValue 
