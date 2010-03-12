@@ -17,7 +17,7 @@ along with galaxy-parser.  If not, see <http://www.gnu.org/licenses/>.
 module Galaxy.SyntaxTree where
 
 data File = File Path [TopDeclaration]
-            deriving Show
+            
 
 data TopDeclaration = ConstDeclaration IsStatic VarDef Statement
                     | VariableDeclaration IsStatic VarDef (Maybe Statement)
@@ -26,18 +26,18 @@ data TopDeclaration = ConstDeclaration IsStatic VarDef Statement
                     | FuncDeclaration IsStatic Prototype (Maybe FunctionBody)
                     | Struct IsStatic Identifier [VarDef]
                     | Include Path
-                      deriving Show
+                      
                       
 data Prototype = Prototype Type Identifier [VarDef]
-               deriving Show
+               
 
 data Local = LocalVar VarDef (Maybe Statement)
-             deriving Show
+             
 
 data Type = ArrType Type Statement
           | PointerType Type
           | PlainType Identifier
-            deriving Show
+            
 
 data TopStatement = ReturnStatement (Maybe Statement)
                   | Block [TopStatement]
@@ -46,41 +46,43 @@ data TopStatement = ReturnStatement (Maybe Statement)
                   | While If
                   | Break
                   | Continue
-                    deriving Show
+                    
 
-data Statement = CallStatement Identifier [Statement]
-               | AssignStatement Variable AssignOp Statement
+data Statement = CallStatement Statement [Statement]
+               -- The following line allows for syntax
+               -- invalid trees...
+               | AssignStatement Statement AssignOp Statement
                | VariableStatement Variable
                | BinaryStatement Statement Op Statement
                | NegatedStatement Statement
                | NotStatement Statement
                | PtrStatement Statement
                | ValueStatement Value
-                 deriving Show
+                 
 
 data AssignOp = SetV | IncV | DecV
               | MulV | DivV | ModV
-                deriving Show
+                
 
 data Variable = LiteralVariable Identifier -- var
               | ArrayDereference Statement Statement -- stmt()[stmt()]
-              | FieldDereference Statement Identifier -- stmt()->field
+              | FieldDereference Statement Identifier -- stmt().field
+              | FieldPtrDereference Statement Identifier -- stmt()->field
               | PtrDereference Statement -- *stmt()
-                deriving Show
+                
 
 data Value = StringValue String
            | FixedValue Double
            | IntValue Integer
            | BoolValue Bool
            | NullValue
-             deriving Show
+
 
 data Op = Add | Sub | Mul | Div 
         | Lt | Lte | Eq | Nq | Gte | Gt
         | And | Or
         | BinAnd | BinOr
         | Mod
-          deriving Show
 
 type IsConst = Bool
 type IsStatic = Bool
