@@ -4,6 +4,7 @@ import System( getArgs )
 import System.IO
 
 import Galaxy.Parser
+import Galaxy.Show
 
 import System.Exit
 
@@ -17,7 +18,7 @@ main = do
 			read arg 	= readFile arg
 			toString programs = case partitionEithers programs of
 				([], o) -> do
-					putStr . show $ o
+				  mapM (putStr . renderDoc) o
 				(err, _)-> do
 					hPutStr stderr $ "parse errors: " ++ show err ++ "\n"
 					exitWith $ ExitFailure 1
