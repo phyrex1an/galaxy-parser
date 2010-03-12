@@ -97,6 +97,7 @@ topDeclaration =  nativeDeclaration
                    isStatic <- (reserved "static" >> return True) <|> return False
                    let funs = map ($ isStatic) [struct, constDeclaration, funcDeclaration, varDeclaration]
                    choice funs
+                 <|> (semi >> topDeclaration)
                    
     where
       nativeDeclaration = (do
@@ -168,8 +169,9 @@ topStatement = returnStatement
                <|> while
                <|> break
                <|> continue
-               <|> try setStatement
-               <|> (callStatement CallTopStatement >>= (\s -> semi >> return s))
+               <|> block
+               <|> actionStatement
+               <|> (semi >> topStatement)
     where
       returnStatement = (do
         reserved "return"
@@ -177,13 +179,6 @@ topStatement = returnStatement
         semi
         return $ ReturnStatement s
                         ) <?> "Return"
-      setStatement = (do
-                          v <- variable
-                          symbol "="
-                          s <- statement
-                          semi
-                          return $ SetStatement v s
-                          ) <?> "set statement"
       ifStatement = (do 
         reserved "if"
         (ts:elifs) <- sepBy1 ifExpr (reserved "else if")
@@ -211,6 +206,11 @@ topStatement = returnStatement
         e <- parens statement
         b <- braces $ many topStatement
         return $ (e, b)
+      block = fmap Block (braces . many $ topStatement)
+      actionStatement = do
+        s <- statement
+        semi
+        return $ ActionStatement s
         
 
 statement :: GenParser Char st Statement

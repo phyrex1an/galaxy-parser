@@ -40,8 +40,8 @@ data Type = ArrType Type Statement
             deriving Show
 
 data TopStatement = ReturnStatement (Maybe Statement)
-                  | SetStatement Variable Statement         
-                  | CallTopStatement Identifier [Statement]
+                  | Block [TopStatement]
+                  | ActionStatement Statement
                   | IfStatement If [If] (Maybe [TopStatement])
                   | While If
                   | Break
@@ -49,6 +49,7 @@ data TopStatement = ReturnStatement (Maybe Statement)
                     deriving Show
 
 data Statement = CallStatement Identifier [Statement]
+               | AssignStatement Variable AssignOp Statement
                | VariableStatement Variable
                | BinaryStatement Statement Op Statement
                | NegatedStatement Statement
@@ -56,6 +57,10 @@ data Statement = CallStatement Identifier [Statement]
                | PtrStatement Statement
                | ValueStatement Value
                  deriving Show
+
+data AssignOp = SetV | IncV | DecV
+              | MulV | DivV | ModV
+                deriving Show
 
 data Variable = LiteralVariable Identifier -- var
               | ArrayDereference Statement Statement -- stmt()[stmt()]
