@@ -3,6 +3,7 @@ module Galaxy.Show where
 
 import Text.PrettyPrint
 import Galaxy.SyntaxTree
+import Galaxy.Operators
 
 
 class Pretty a where
@@ -84,18 +85,7 @@ instance Pretty Statement where
     doc (ValueStatement v) = doc v
 
 instance Pretty AssignOp where
-    doc SetV = text "="
-    doc IncV = text "+="
-    doc DecV = text "-="
-    doc MulV = text "*="
-    doc DivV = text "/="
-    doc ModV = text "%="
-    doc BinAndV = text "&="
-    doc BinOrV = text "|="
-    doc BinXorV = text "^="
-    doc BinNotV = text "~="
-    doc LeftShiftV = text "<<="
-    doc RightShiftV = text ">>="
+    doc op = text $ lookupOp op assignementOperators
 
 instance Pretty Variable where
     doc (LiteralVariable i) = text i
@@ -111,33 +101,10 @@ instance Pretty Value where
     doc NullValue = text "null"
 
 instance Pretty BinOp where
-    doc Mul = char '*'
-    doc Div = char '/'
-    doc Mod = char '%'
-    doc Add = char '+'
-    doc Sub = char '-'
-    doc LeftShift = text "<<"
-    doc RightShift = text ">>"
-
-    doc Greater  = char '>'
-    doc GreaterEqual = text ">="
-    doc LessEqual = text "<="
-    doc Less  = char '<'
-    doc Equals  = text "=="
-    doc NotEquals  = text "!="
-    doc BinAnd = char '&'
-    doc BinXor = char '^'
-    doc BinOr  = char '|'
-    doc And = text "&&"
-    doc Or  = text "||"
+    doc op = text $ lookupOp op binaryOperators
 
 instance Pretty UnaryOp where
-    doc UPos = char '+'
-    doc UNeg = char '-'
-    doc UNot = char '!'
-    doc UBinNot = char '~'
-    doc UAddressOf = char '&'
-    doc UPtrDereference = char '*'
+    doc op = text $ lookupOp op unaryOperators
 
 renderDoc :: Pretty a => a -> String
 renderDoc = render . doc

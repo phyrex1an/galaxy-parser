@@ -19,6 +19,7 @@ module Galaxy.Parser where
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Galaxy.SyntaxTree
+import Galaxy.Operators
 
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language( emptyDef )
@@ -227,77 +228,34 @@ statement = buildExpressionParser expressionTable terms
         v <- value
         return $ ValueStatement v
       expressionTable :: OperatorTable Char st Statement
-      expressionTable = [ [ Postfix (do
-                                      i <- squares statement
-                                      return $ \s ->
-                                          VariableStatement (ArrayDereference s i)
-                                    )
-                          , Postfix (do
-                                      reservedOp "->"
-                                      i <- identifier
-                                      return $ \s ->
-                                          VariableStatement (FieldPtrDereference s i)
-                                    )
-                          , Postfix (do
-                                      reservedOp "."
-                                      i <- identifier
-                                      return $ \s ->
-                                          VariableStatement (FieldDereference s i)
-                                    )
-                          , Postfix (do
-                                      a <- parens (sepBy statement comma)
-                                      return $ \s ->
-                                          CallStatement s a
-                                    )
-                          ]
-                        , map unOp 
-                              [ ("+", UPos)
-                              , ("-", UNeg)
-                              , ("!", UNot)
-                              , ("~", UBinNot)
-                              , ("&", UAddressOf)
-                              , ("*", UPtrDereference)
-                              ]
-                        ] ++ map (map binOp) 
-                                     [ [ ("*", Mul)
-                                       , ("/", Div)
-                                       , ("%", Mod)
-                                       ]
-                                     , [ ("+", Add)
-                                       , ("-", Sub)
-                                       ]
-                                     , [ ("<<", LeftShift)
-                                       , (">>", RightShift)
-                                       ]
-                                     , [ (">" , Greater)
-                                       , (">=", GreaterEqual)
-                                       , ("<=", LessEqual)
-                                       , ("<" , Less)
-                                       ]
-                                     , [ ("==", Equals)
-                                       , ("!=", NotEquals)
-                                       ]
-                                     , [("&",BinAnd)]
-                                     , [("^",BinXor)]
-                                     , [("|",BinOr)]
-                                     , [("&&",And)]
-                                     , [("||",Or)]
-                                     ] ++
-                        [ map setOp
-                              [ ("=" , SetV)
-                              , ("+=", IncV)
-                              , ("-=", DecV)
-                              , ("*=", MulV)
-                              , ("/=", DivV)
-                              , ("%=", ModV)
-                              , ("&=", BinAndV)
-                              , ("|=", BinOrV)
-                              , ("^=", BinXorV)
-                              , ("~=", BinNotV)
-                              , ("<<=", LeftShiftV)
-                              , (">>=", RightShiftV)
-                              ]
-                        ]                                    
+      expressionTable = concat [ 
+                         [[ Postfix (do
+                                     i <- squares statement
+                                     return $ \s ->
+                                         VariableStatement (ArrayDereference s i)
+                                   )
+                         , Postfix (do
+                                     reservedOp "->"
+                                     i <- identifier
+                                     return $ \s ->
+                                         VariableStatement (FieldPtrDereference s i)
+                                   )
+                         , Postfix (do
+                                     reservedOp "."
+                                     i <- identifier
+                                     return $ \s ->
+                                         VariableStatement (FieldDereference s i)
+                                   )
+                         , Postfix (do
+                                     a <- parens (sepBy statement comma)
+                                     return $ \s ->
+                                         CallStatement s a
+                                   )
+                          ]]
+                        , map2 unOp unaryOperators 
+                        , map2 binOp binaryOperators
+                        , map2 setOp assignementOperators 
+                        ]                
       binOp  (name, sym) = Infix (do 
                                    reservedOp name
                                    return $ (\a b -> BinaryStatement a sym b)
@@ -311,7 +269,7 @@ statement = buildExpressionParser expressionTable terms
                                    return $ \a b -> 
                                        AssignStatement a sym b
                                  ) AssocLeft
-
+      map2 = map . map
 
 
 value :: GenParser Char st Value

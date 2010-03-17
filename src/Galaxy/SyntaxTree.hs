@@ -68,13 +68,13 @@ data AssignOp = SetV | IncV | DecV
               | BinAndV | BinOrV
               | BinXorV | BinNotV
               | LeftShiftV | RightShiftV
-                
+                deriving Eq
 
 data Variable = LiteralVariable Identifier -- var
               | ArrayDereference Statement Statement -- stmt()[stmt()]
               | FieldDereference Statement Identifier -- stmt().field
               | FieldPtrDereference Statement Identifier -- stmt()->field
-              -- PtrDereference is now a unary op statement
+                -- PtrDereference is now a unary op statement
 
 data Value = StringValue String
            | FixedValue Double
@@ -83,8 +83,8 @@ data Value = StringValue String
            | NullValue
 
 
--- Binary operators in order
--- of precedence level. Highest to lowest
+ -- Binary operators in order
+ -- of precedence level. Highest to lowest
 data BinOp = Mul | Div | Mod
            | Add | Sub
            | LeftShift | RightShift
@@ -95,10 +95,12 @@ data BinOp = Mul | Div | Mod
            | BinOr
            | And
            | Or
+             deriving Eq
              -- AssignOp is always lower
 
 data UnaryOp = UPos | UNeg | UNot | UBinNot 
              | UAddressOf | UPtrDereference
+               deriving Eq
                -- BinOp is always lower
 
 type IsConst = Bool
