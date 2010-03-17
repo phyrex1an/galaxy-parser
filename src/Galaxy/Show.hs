@@ -25,10 +25,10 @@ instance Pretty TopDeclaration where
     doc (NativeDeclaration p) =
         text "native" <+> doc p
     doc (FuncDeclaration c p b) =
-        static c <+> doc p $+$ perhaps b (\b -> funcBody b)
+        static c <+> doc p $+$ perhaps b funcBody
     doc (Struct c i v) = 
         static c <+> text "struct" <+> text i <+> (braces
-                . nest 4 $ (hsep $ punctuate semi (map varDef v)))
+                . nest 4 $ hsep (punctuate semi (map varDef v)))
     doc (Include p) = text "include" <+> text (show p) <> semi
 
 static c = if c then text "static" else empty
@@ -52,12 +52,12 @@ instance Pretty Type where
 instance Pretty TopStatement where
     doc (ReturnStatement s) = text "return" <+> doc s <> semi
     doc (ActionStatement s) = doc s <> semi
-    doc (IfStatement i ifs els) = (hsep $ punctuate (text "else") ((ifBody i):(map ifBody ifs)))
-                                  $+$ case els of
-                                        Nothing -> empty
-                                        Just stmts -> text "else" <> funcBody ([],stmts)
-                                      where
-                                        ifBody = condBody "if"
+    doc (IfStatement i ifs els) = hsep (punctuate (text "else") (ifBody i:map ifBody ifs)) $+$
+                                  case els of
+                                    Nothing -> empty
+                                    Just stmts -> text "else" <> funcBody ([],stmts)
+        where
+          ifBody = condBody "if"
     doc (While i) = condBody "while" i
     doc Break = text "break" <> semi
     doc Continue = text "continue" <> semi
@@ -68,8 +68,8 @@ condBody n (s, body) = text n <+> parens (doc s)
 funcBody :: FunctionBody -> Doc
 funcBody (v,b) = lbrace
                 $+$ nest 4 (
-                            (vcat $ map doc v) <+> 
-                            (vcat $ map doc b)
+                            vcat (map doc v) <+> 
+                            vcat (map doc b)
                            )
                 $+$ rbrace
 

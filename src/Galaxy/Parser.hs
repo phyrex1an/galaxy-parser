@@ -24,7 +24,7 @@ import Galaxy.Operators
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language( emptyDef )
 
-import Control.Applicative ((<*>))
+import Control.Monad (liftM)
 
 lexer  = P.makeTokenParser 
          (emptyDef
@@ -206,7 +206,7 @@ topStatement = returnStatement
       ifExpr = do
         e <- parens statement
         b <- braces $ many topStatement
-        return $ (e, b)
+        return (e, b)
       block = fmap Block (braces . many $ topStatement)
       actionStatement = do
         s <- statement
@@ -258,7 +258,7 @@ statement = buildExpressionParser expressionTable terms
                         ]                
       binOp  (name, sym) = Infix (do 
                                    reservedOp name
-                                   return $ (\a b -> BinaryStatement a sym b)
+                                   return (\a b -> BinaryStatement a sym b)
                                   ) AssocLeft
       unOp   (name, sym) = Prefix (do
                                     reservedOp name
@@ -318,7 +318,7 @@ varDef = do
   return (t, i)
 
 maybeSet :: GenParser Char st (Maybe Statement)
-maybeSet = (symbol "=" >> statement >>= return . Just) <|> return Nothing
+maybeSet = liftM Just (symbol "=" >> statement) <|> return Nothing
 
 doParse :: FilePath -> String -> Either ParseError File
 doParse file input = runParser (program file) () file input

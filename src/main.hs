@@ -11,14 +11,13 @@ import System.Exit
 
 main = do
 	fileNames<- getArgs
-	files 	 <-	(sequence . map read) fileNames	
-	toString $ map (uncurry doParse) $ zip fileNames files
+	files 	 <- mapM read fileNames	
+	toString $ zipWith doParse fileNames files
 		where
 			read "-s" 	= getContents 
 			read arg 	= readFile arg
 			toString programs = case partitionEithers programs of
-				([], o) -> do
-				  mapM (putStr . renderDoc) o
+				([], o) -> mapM (putStr . renderDoc) o
 				(err, _)-> do
 					hPutStr stderr $ "parse errors: " ++ show err ++ "\n"
 					exitWith $ ExitFailure 1

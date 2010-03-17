@@ -58,6 +58,6 @@ assignementOperators = [ [ ("=" , SetV)
                          ]
                        ]
 lookupOp :: Eq a => a -> [[(String, a)]] -> String
-lookupOp op ops = head . catMaybes . map (lookup op) . swapTuples $ ops 
+lookupOp op ops = head . mapMaybe (lookup op) . swapTuples $ ops 
     where
       swapTuples = map . map $ (\(a, b) -> (b, a))
