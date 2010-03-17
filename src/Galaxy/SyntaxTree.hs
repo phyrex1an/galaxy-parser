@@ -41,6 +41,9 @@ data Type = ArrType Type Statement
 
 data TopStatement = ReturnStatement (Maybe Statement)
                   | Block [TopStatement]
+                  -- The follwing line allows for syntax
+                  -- invalid trees.
+                  -- 1+1;
                   | ActionStatement Statement
                   | IfStatement If [If] (Maybe [TopStatement])
                   | While If
@@ -51,6 +54,7 @@ data TopStatement = ReturnStatement (Maybe Statement)
 data Statement = CallStatement Statement [Statement]
                -- The following line allows for syntax
                -- invalid trees...
+               -- Foo() = Foo()
                | AssignStatement Statement AssignOp Statement
                | VariableStatement Variable
                | BinaryStatement Statement Op Statement
