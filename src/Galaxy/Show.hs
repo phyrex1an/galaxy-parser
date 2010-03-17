@@ -80,9 +80,7 @@ instance Pretty Statement where
     doc (AssignStatement v o s) = doc v <> doc o <> doc s
     doc (VariableStatement i) = doc i
     doc (BinaryStatement b1 o b2) = doc b1 <+> doc o <+> doc b2
-    doc (NegatedStatement s) = char '-' <> doc s
-    doc (NotStatement s) = char '!' <> doc s
-    doc (PtrStatement s) = char '&' <> doc s
+    doc (UnaryStatement o s) = doc o <> doc s
     doc (ValueStatement v) = doc v
 
 instance Pretty AssignOp where
@@ -92,13 +90,18 @@ instance Pretty AssignOp where
     doc MulV = text "*="
     doc DivV = text "/="
     doc ModV = text "%="
+    doc BinAndV = text "&="
+    doc BinOrV = text "|="
+    doc BinXorV = text "^="
+    doc BinNotV = text "~="
+    doc LeftShiftV = text "<<="
+    doc RightShiftV = text ">>="
 
 instance Pretty Variable where
     doc (LiteralVariable i) = text i
     doc (ArrayDereference s i) = doc s <> brackets (doc s)
     doc (FieldPtrDereference s i) = doc s <> text "->" <> text i
     doc (FieldDereference s i) = doc s <> char '.' <> text i
-    doc (PtrDereference s) = char '*' <> doc s
 
 instance Pretty Value where
     doc (StringValue s) = text $ show s
@@ -107,22 +110,34 @@ instance Pretty Value where
     doc (BoolValue b) = if b then text "true" else text "false"
     doc NullValue = text "null"
 
-instance Pretty Op where
-    doc Add = char '+'
-    doc Sub = char '-'
+instance Pretty BinOp where
     doc Mul = char '*'
     doc Div = char '/'
-    doc Lt  = char '<'
-    doc Lte = text "<="
-    doc Eq  = text "=="
-    doc Nq  = text "!="
-    doc Gte = text ">="
-    doc Gt  = char '>'
+    doc Mod = char '%'
+    doc Add = char '+'
+    doc Sub = char '-'
+    doc LeftShift = text "<<"
+    doc RightShift = text ">>"
+
+    doc Greater  = char '>'
+    doc GreaterEqual = text ">="
+    doc LessEqual = text "<="
+    doc Less  = char '<'
+    doc Equals  = text "=="
+    doc NotEquals  = text "!="
+    doc BinAnd = char '&'
+    doc BinXor = char '^'
+    doc BinOr  = char '|'
     doc And = text "&&"
     doc Or  = text "||"
-    doc BinAnd = char '&'
-    doc BinOr  = char '|'
-    doc Mod = char '%'
+
+instance Pretty UnaryOp where
+    doc UPos = char '+'
+    doc UNeg = char '-'
+    doc UNot = char '!'
+    doc UBinNot = char '~'
+    doc UAddressOf = char '&'
+    doc UPtrDereference = char '*'
 
 renderDoc :: Pretty a => a -> String
 renderDoc = render . doc

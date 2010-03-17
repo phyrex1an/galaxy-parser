@@ -244,46 +244,74 @@ statement = buildExpressionParser expressionTable terms
                                       return $ \s ->
                                           VariableStatement (FieldDereference s i)
                                     )
-                          , prefix "*" (VariableStatement . PtrDereference)
                           , Postfix (do
                                       a <- parens (sepBy statement comma)
                                       return $ \s ->
                                           CallStatement s a
                                     )
                           ]
-                        , map (uncurry setOp)
+                        , map unOp 
+                              [ ("+", UPos)
+                              , ("-", UNeg)
+                              , ("!", UNot)
+                              , ("~", UBinNot)
+                              , ("&", UAddressOf)
+                              , ("*", UPtrDereference)
+                              ]
+                        ] ++ map (map binOp) 
+                                     [ [ ("*", Mul)
+                                       , ("/", Div)
+                                       , ("%", Mod)
+                                       ]
+                                     , [ ("+", Add)
+                                       , ("-", Sub)
+                                       ]
+                                     , [ ("<<", LeftShift)
+                                       , (">>", RightShift)
+                                       ]
+                                     , [ (">" , Greater)
+                                       , (">=", GreaterEqual)
+                                       , ("<=", LessEqual)
+                                       , ("<" , Less)
+                                       ]
+                                     , [ ("==", Equals)
+                                       , ("!=", NotEquals)
+                                       ]
+                                     , [("&",BinAnd)]
+                                     , [("^",BinXor)]
+                                     , [("|",BinOr)]
+                                     , [("&&",And)]
+                                     , [("||",Or)]
+                                     ] ++
+                        [ map setOp
                               [ ("=" , SetV)
                               , ("+=", IncV)
                               , ("-=", DecV)
                               , ("*=", MulV)
                               , ("/=", DivV)
                               , ("%=", ModV)
+                              , ("&=", BinAndV)
+                              , ("|=", BinOrV)
+                              , ("^=", BinXorV)
+                              , ("~=", BinNotV)
+                              , ("<<=", LeftShiftV)
+                              , (">>=", RightShiftV)
                               ]
-                        , [ prefix "-" NegatedStatement
-                          , prefix "&" PtrStatement
-                          ]
-		        , [binary "*" Mul, binary "/" Div]
-		        , [binary "+" Add, binary "-" Sub]
-                        , [binary "%" Mod]
-		        , [ binary ">" Gt
-		          , binary ">=" Gte
-		          , binary "==" Eq
-		          , binary "!=" Nq
-		          , binary "<=" Lte
-		          , binary "<" Lt
-                          , binary "|" BinOr
-                          , binary "&" BinAnd
-		          ]
-		        , [prefix "!" NotStatement]
-		        , [binary "&&" And, binary "||" Or]
-                        ]
-      binary  name fun = Infix   (do{ reservedOp name; return $ (\a b -> BinaryStatement a fun b) }) AssocLeft
-      prefix  name fun = Prefix  (do{ reservedOp name; return fun })
-      setOp   name sym = Infix (do 
-                                 reservedOp name
-                                 return $ \a b -> 
-                                     AssignStatement a sym b
-                               ) AssocNone
+                        ]                                    
+      binOp  (name, sym) = Infix (do 
+                                   reservedOp name
+                                   return $ (\a b -> BinaryStatement a sym b)
+                                  ) AssocLeft
+      unOp   (name, sym) = Prefix (do
+                                    reservedOp name
+                                    return $ UnaryStatement sym
+                                  )
+      setOp  (name, sym) = Infix (do
+                                   reservedOp name
+                                   return $ \a b -> 
+                                       AssignStatement a sym b
+                                 ) AssocLeft
+
 
 
 value :: GenParser Char st Value

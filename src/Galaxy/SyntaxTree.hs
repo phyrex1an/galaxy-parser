@@ -47,6 +47,7 @@ data TopStatement = ReturnStatement (Maybe Statement)
                   | ActionStatement Statement
                   | IfStatement If [If] (Maybe [TopStatement])
                   | While If
+                  | DoWhile If
                   | Break
                   | Continue
                     
@@ -57,23 +58,23 @@ data Statement = CallStatement Statement [Statement]
                -- Foo() = Foo()
                | AssignStatement Statement AssignOp Statement
                | VariableStatement Variable
-               | BinaryStatement Statement Op Statement
-               | NegatedStatement Statement
-               | NotStatement Statement
-               | PtrStatement Statement
+               | BinaryStatement Statement BinOp Statement
+               | UnaryStatement UnaryOp Statement
                | ValueStatement Value
                  
 
 data AssignOp = SetV | IncV | DecV
               | MulV | DivV | ModV
+              | BinAndV | BinOrV
+              | BinXorV | BinNotV
+              | LeftShiftV | RightShiftV
                 
 
 data Variable = LiteralVariable Identifier -- var
               | ArrayDereference Statement Statement -- stmt()[stmt()]
               | FieldDereference Statement Identifier -- stmt().field
               | FieldPtrDereference Statement Identifier -- stmt()->field
-              | PtrDereference Statement -- *stmt()
-                
+              -- PtrDereference is now a unary op statement
 
 data Value = StringValue String
            | FixedValue Double
@@ -82,11 +83,23 @@ data Value = StringValue String
            | NullValue
 
 
-data Op = Add | Sub | Mul | Div 
-        | Lt | Lte | Eq | Nq | Gte | Gt
-        | And | Or
-        | BinAnd | BinOr
-        | Mod
+-- Binary operators in order
+-- of precedence level. Highest to lowest
+data BinOp = Mul | Div | Mod
+           | Add | Sub
+           | LeftShift | RightShift
+           | Greater | GreaterEqual | LessEqual | Less
+           | Equals | NotEquals
+           | BinAnd
+           | BinXor
+           | BinOr
+           | And
+           | Or
+             -- AssignOp is always lower
+
+data UnaryOp = UPos | UNeg | UNot | UBinNot 
+             | UAddressOf | UPtrDereference
+               -- BinOp is always lower
 
 type IsConst = Bool
 type IsStatic = Bool
